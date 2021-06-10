@@ -1,19 +1,12 @@
 package com.example.cinema.web;
 
+import com.example.cinema.dao.CinemaRepository;
 import com.example.cinema.dao.FilmRepository;
 import com.example.cinema.dao.TicketRepository;
-import com.example.cinema.entities.Film;
-import com.example.cinema.entities.Ticket;
+import com.example.cinema.entities.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import org.springframework.web.bind.annotation.*;
 import lombok.Data;
 import java.io.File;
 import java.io.Serializable;
@@ -28,19 +21,22 @@ import java.nio.file.Path;
 @RestController
 public class CinemaRestController {
     @Autowired
+    private CinemaRepository cinemaRepository;
+    @Autowired
     private FilmRepository filmRepository;
     @Autowired
     private TicketRepository ticketRepository;
 
+    @CrossOrigin("*")
     @GetMapping(path = "/imageFilm/{id}", produces = MediaType.IMAGE_JPEG_VALUE)
     @Transactional
     public byte[] image(@PathVariable(name = "id") Long id) throws Exception {
         Film f = filmRepository.findById(id).get();
         String photoName = f.getPhoto().toUpperCase();
-        File file = new File(System.getProperty("user.home") + "/cinema/image/" + photoName + ".jpg");
+        File file = new File(System.getProperty("user.home") + "/cinema/images/" + photoName + ".jpg");
+        System.err.println(System.getProperty("user.home")+"/cinema/images/"+photoName);
         Path path = Paths.get(file.toURI());
         return Files.readAllBytes(path);
-
     }
 
     @CrossOrigin("*")
@@ -48,20 +44,21 @@ public class CinemaRestController {
     @Transactional
     public List<Ticket> payerTickets(@RequestBody TicketForm ticketForm) {
         List<Ticket> listTickets = new ArrayList<Ticket>();
-        System.out.println("heree :" + ticketForm.getNameClient());
         ticketForm.getTickets().forEach(idTicket -> {
             Ticket ticket = ticketRepository.findById(idTicket).get();
             ticket.setNomClient(ticketForm.getNameClient());
             ticket.setReserve(true);
+            ticket.setCodePayment(ticketForm.getCodePayement());
             ticketRepository.save(ticket);
             listTickets.add(ticket);
         });
         return listTickets;
     }
 }
-    @Data
-    class TicketForm implements Serializable {
-        private String nameClient;
-        private List<Long> tickets = new ArrayList<Long>();
-    }
+@Data
+class TicketForm implements Serializable {
+    private String nameClient;
+    private int codePayement;
+    private List<Long> tickets = new ArrayList<>();
+}
 
